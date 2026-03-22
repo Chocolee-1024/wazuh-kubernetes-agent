@@ -13,7 +13,7 @@ metadata:
   name: wazuh-indexer
   namespace: wazuh
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: wazuh-indexer
@@ -61,16 +61,22 @@ spec:
             - vm.max_map_count=262144
           securityContext:
             privileged: true
+      nodeSelector:
+        role: master
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: wazuh-indexer
           image: 'wazuh/wazuh-indexer:4.14.3'
           resources:
             limits:
               cpu: 500m
-              memory: 1564Mi
+              memory: 1536Mi
           env:
             - name: OPENSEARCH_JAVA_OPTS
-              value: '-Xms1g -Xmx1g -Dlog4j2.formatMsgNoLookups=true'
+              value: '-Xms512m -Xmx512m -XX:MaxDirectMemorySize=512m -Dlog4j2.formatMsgNoLookups=true'
             - name: CLUSTER_NAME
               value: wazuh
             - name: NETWORK_HOST

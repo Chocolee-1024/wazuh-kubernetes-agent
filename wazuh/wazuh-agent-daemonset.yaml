@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: wazuh-agent
+  namespace: wazuh
+spec:
+  selector:
+    matchLabels:
+      app: wazuh-agent
+  template:
+    metadata:
+      labels:
+        app: wazuh-agent
+    spec:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      hostPID: true
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: wazuh-agent
+          image: wazuh/wazuh-agent:4.14.3
+          env:
+            - name: WAZUH_MANAGER_SERVER
+              value: "wazuh-workers.wazuh.svc.cluster.local"
+            - name: WAZUH_REGISTRATION_SERVER
+              value: "wazuh.wazuh.svc.cluster.local"
+            - name: WAZUH_REGISTRATION_PORT
+              value: "1515"
+            - name: WAZUH_REGISTRATION_PASSWORD
+              value: "password"
+            - name: WAZUH_AGENT_GROUP
+              value: "k8s-nodes"
+            - name: WAZUH_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: var-log
+              mountPath: /var/log
+              readOnly: true
+            - name: etc-os-release
+              mountPath: /etc/os-release
+              readOnly: true
+            - name: host-root
+              mountPath: /rootfs
+              readOnly: true
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: var-log
+          hostPath:
+            path: /var/log
+        - name: etc-os-release
+          hostPath:
+            path: /etc/os-release
+        - name: host-root
+          hostPath:
+            path: /

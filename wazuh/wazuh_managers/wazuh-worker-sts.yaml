@@ -13,7 +13,7 @@ metadata:
   name: wazuh-manager-worker
   namespace: wazuh
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: wazuh-manager
@@ -46,13 +46,19 @@ spec:
             secretName: indexer-certs
       securityContext:
         fsGroup: 101
+      nodeSelector:
+        role: master
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: wazuh-manager
           image: 'wazuh/wazuh-manager:4.14.3'
           resources:
             limits:
-              cpu: 400m
-              memory: 512Mi
+              cpu: 800m
+              memory: 1024Mi
           securityContext:
             capabilities:
               add: ["SYS_CHROOT"]

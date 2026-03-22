@@ -30,6 +30,12 @@ spec:
         - name: dashboard-certs
           secret:
             secretName: dashboard-certs
+      nodeSelector:
+        role: master
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: wazuh-dashboard
           image: 'wazuh/wazuh-dashboard:4.14.3'
