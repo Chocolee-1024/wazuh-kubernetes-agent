@@ -19,9 +19,35 @@ spec:
         - key: node-role.kubernetes.io/master
           operator: Exists
           effect: NoSchedule
-      hostPID: true
-      hostNetwork: true
+      hostPID: false
+      hostNetwork: false
       dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+        - name: iptables-scan-rules
+          image: ubuntu:22.04
+          command:
+            - /bin/bash
+            - -c
+            - |
+              apt-get update -qq && apt-get install -y -qq iptables > /dev/null 2>&1
+              # Detect NULL scan
+              chroot /rootfs iptables -C INPUT -p tcp --tcp-flags ALL NONE -j LOG --log-prefix "SCAN: " --log-level 4 2>/dev/null || \
+              chroot /rootfs iptables -I INPUT -p tcp --tcp-flags ALL NONE -j LOG --log-prefix "SCAN: " --log-level 4
+              # Detect XMAS scan
+              chroot /rootfs iptables -C INPUT -p tcp --tcp-flags ALL FIN,PSH,URG -j LOG --log-prefix "SCAN: " --log-level 4 2>/dev/null || \
+              chroot /rootfs iptables -I INPUT -p tcp --tcp-flags ALL FIN,PSH,URG -j LOG --log-prefix "SCAN: " --log-level 4
+              # Detect SYN/RST scan
+              chroot /rootfs iptables -C INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j LOG --log-prefix "SCAN: " --log-level 4 2>/dev/null || \
+              chroot /rootfs iptables -I INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j LOG --log-prefix "SCAN: " --log-level 4
+              # Detect SYN/FIN scan
+              chroot /rootfs iptables -C INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j LOG --log-prefix "SCAN: " --log-level 4 2>/dev/null || \
+              chroot /rootfs iptables -I INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j LOG --log-prefix "SCAN: " --log-level 4
+              echo "iptables scan detection rules configured"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: host-root
+              mountPath: /rootfs
       containers:
         - name: wazuh-agent
           image: wazuh/wazuh-agent:4.14.3
@@ -51,6 +77,8 @@ spec:
               readOnly: true
             - name: host-root
               mountPath: /rootfs
+            - name: host-proc
+              mountPath: /host/proc
               readOnly: true
           resources:
             requests:
@@ -69,3 +97,6 @@ spec:
         - name: host-root
           hostPath:
             path: /
+        - name: host-proc
+          hostPath:
+            path: /proc

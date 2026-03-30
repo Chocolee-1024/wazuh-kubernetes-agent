@@ -55,6 +55,18 @@ spec:
           securityContext:
             capabilities:
               add: ["SYS_CHROOT"]
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - |
+                    sleep 5
+                    chown -R wazuh:wazuh /var/ossec/etc/shared/k8s-nodes 2>/dev/null
+                    chmod -R 770 /var/ossec/etc/shared/k8s-nodes 2>/dev/null
+                    chmod 750 /var/ossec/integrations/custom-api 2>/dev/null
+                    chown root:wazuh /var/ossec/integrations/custom-api 2>/dev/null
           volumeMounts:
             - name: config
               mountPath: /wazuh-config-mount/etc/ossec.conf
@@ -112,6 +124,14 @@ spec:
             - name: config
               mountPath: /wazuh-config-mount/etc/rules/local_rules.xml
               subPath: local_rules.xml
+              readOnly: true
+            - name: config
+              mountPath: /wazuh-config-mount/etc/shared/k8s-nodes/agent.conf
+              subPath: agent.conf
+              readOnly: true
+            - name: config
+              mountPath: /wazuh-config-mount/integrations/custom-api
+              subPath: custom-api
               readOnly: true
           ports:
             - containerPort: 1515

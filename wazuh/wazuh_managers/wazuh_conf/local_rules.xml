@@ -7,10 +7,22 @@
     <group>authentication_failed,pci_dss_10.2.4,pci_dss_10.2.5,</group>
   </rule>
 
-  <!-- Nmap 掃描 -->
-  <rule id="100100" level="10">
-    <if_group>nmap</if_group>
-    <description>Override: Nmap scan detected - elevated to level 10</description>
+  <!-- Firewall SCAN events (iptables LOG with SCAN prefix) -->
+  <!-- no_log: 不產生警報，只用來計數給 100110 -->
+  <rule id="100100" level="3">
+    <if_sid>4100</if_sid>
+    <action>SCAN:</action>
+    <description>Firewall: Port scan detected (iptables SCAN log).</description>
+    <options>no_log</options>
+    <group>firewall_scan,nmap,</group>
+  </rule>
+
+  <!-- 同一來源 30 秒內掃描超過 10 次才觸發一次警報 -->
+  <rule id="100110" level="10" frequency="10" timeframe="30" ignore="60">
+    <if_matched_sid>100100</if_matched_sid>
+    <same_source_ip />
+    <description>Firewall: Repeated port scan from same source - possible nmap scan.</description>
+    <group>firewall_scan,nmap,attack,</group>
   </rule>
 
   <!-- DDoS / Flood -->
@@ -19,10 +31,11 @@
     <description>Override: DoS/DDoS detected - elevated to level 10</description>
   </rule>
 
-  <!-- Command & Control -->
-  <rule id="100102" level="10">
-    <if_group>c2</if_group>
-    <description>Override: C2 communication detected - elevated to level 10</description>
+  <!-- Multiple firewall DROP from same source -->
+  <rule id="100103" level="8">
+    <if_sid>4101</if_sid>
+    <description>Firewall: DROP event detected.</description>
+    <group>firewall_drop,</group>
   </rule>
 
 </group>

@@ -82,7 +82,43 @@ for label in "app=wazuh-indexer" "app=wazuh-manager" "app=wazuh-dashboard"; do
 done
 
 echo ""
-info "部署完成！Pod 狀態："
+info "核心元件部署完成 ✓"
+
+# =============================================================
+section "部署 Wazuh Agent DaemonSet"
+# =============================================================
+
+kubectl apply -f wazuh-agent-daemonset.yaml -n wazuh
+
+info "等待 Agent Pod 啟動..."
+kubectl wait --for=condition=Ready pod -l "app=wazuh-agent" \
+  -n wazuh --timeout=300s || warn "Agent 尚未 Ready"
+
+info "Agent 部署完成 ✓"
+
+# =============================================================
+section "修復 k8s-nodes 群組權限"
+# =============================================================
+
+info "等待 Manager 完全啟動..."
+sleep 15
+
+# 修復 ConfigMap 複製後的權限問題
+kubectl exec -n wazuh wazuh-manager-master-0 -- bash -c '
+  chown -R wazuh:wazuh /var/ossec/etc/shared/k8s-nodes 2>/dev/null
+  chmod -R 770 /var/ossec/etc/shared/k8s-nodes 2>/dev/null
+' 2>/dev/null && info "k8s-nodes 群組權限修復完成 ✓" || warn "權限修復失敗，可能需要手動執行"
+
+# 重啟 Manager 內部服務讓 remoted 載入群組配置
+kubectl exec -n wazuh wazuh-manager-master-0 -- /var/ossec/bin/wazuh-control restart 2>/dev/null
+info "Manager 服務重啟完成 ✓"
+
+sleep 10
+
+# =============================================================
+section "部署完成"
+# =============================================================
+
 kubectl get pods -n wazuh -o wide
 
 echo ""
@@ -96,3 +132,7 @@ echo "  Dashboard : https://${MASTER_IP}:${DASH_PORT}"
 echo "  帳號      : admin"
 echo "  密碼      : SecretPassword"
 echo "=================================================="
+echo ""
+info "Agent 會自動註冊到 k8s-nodes 群組"
+info "iptables 掃描偵測規則已由 initContainer 自動設定"
+info "可用 nmap -sX <node-ip> 測試掃描偵測"

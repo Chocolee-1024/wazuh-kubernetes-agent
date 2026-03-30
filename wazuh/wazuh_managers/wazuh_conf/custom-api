@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+import sys
+import json
+import urllib.request
+
+ALERT_FILE = sys.argv[1]
+
+with open(ALERT_FILE) as f:
+    alert_json = json.load(f)
+
+payload = json.dumps({
+    "input": json.dumps(alert_json)
+}).encode("utf-8")
+
+try:
+    req = urllib.request.Request(
+        "http://10.0.0.200:1024/api/agent/trigger",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST"
+    )
+    urllib.request.urlopen(req, timeout=2)
+except Exception:
+    pass
