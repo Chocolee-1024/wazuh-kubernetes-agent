@@ -1,0 +1,28 @@
+<group name="local,attack_override,">
+
+  <rule id="100001" level="5">
+    <if_sid>5716</if_sid>
+    <srcip>1.1.1.1</srcip>
+    <description>sshd: authentication failed from IP 1.1.1.1.</description>
+    <group>authentication_failed,pci_dss_10.2.4,pci_dss_10.2.5,</group>
+  </rule>
+
+  <!-- Nmap 掃描 -->
+  <rule id="100100" level="10">
+    <if_group>nmap</if_group>
+    <description>Override: Nmap scan detected - elevated to level 10</description>
+  </rule>
+
+  <!-- DDoS / Flood -->
+  <rule id="100101" level="10">
+    <if_group>dos</if_group>
+    <description>Override: DoS/DDoS detected - elevated to level 10</description>
+  </rule>
+
+  <!-- Command & Control -->
+  <rule id="100102" level="10">
+    <if_group>c2</if_group>
+    <description>Override: C2 communication detected - elevated to level 10</description>
+  </rule>
+
+</group>

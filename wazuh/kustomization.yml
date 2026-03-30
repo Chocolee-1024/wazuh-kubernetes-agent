@@ -36,6 +36,7 @@ configMapGenerator:
       - indexer_stack/wazuh-indexer/indexer_conf/internal_users.yml
   - name: wazuh-conf
     files:
+      - wazuh_managers/wazuh_conf/local_rules.xml
       - wazuh_managers/wazuh_conf/master.conf
       - wazuh_managers/wazuh_conf/worker.conf
   - name: dashboard-conf
